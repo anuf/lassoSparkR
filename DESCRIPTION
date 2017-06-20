@@ -1,0 +1,11 @@
+Package: lassoSparkR
+Type: Package
+Title: Implements LASSO Algorithms for Estimation in Linear Models to be run in Apache Spark Engine
+Version: 0.1.0
+Author: Adolfo Núñez Fernández 
+Maintainer: Adolfo Núñez Fernánde <adolfo.nunez@usc.es>
+Description: More about what it does (maybe more than one line)
+    Use four spaces when indenting paragraphs within the Description.
+License: GPL
+Encoding: UTF-8
+LazyData: true
