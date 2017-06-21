@@ -67,3 +67,48 @@ shooting_fu <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
   output <- list(beta = beta_hat, step = step, converged = converged)
   return(output)
 }
+
+#' Shooting algorithm as in Fu
+#' @param X design matrix
+#' @param y vector of responses
+#' @param lambda tuning parameter
+#' @param eps tolerance
+#' @return The vector of parameters, steps performed and indicator of convergence
+shooting_fu2 <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
+
+  p <- ncol(X)
+  # Products done just once for reuse
+  two_XX = 2*t(X)%*%X # Equivalent: 2*crossprod(X)
+  two_Xy = 2*crossprod(X,y)
+
+  # Start with $\beta_OLS$
+  myFormula <- as.formula(paste("y~",paste(colnames(X),collapse ="+")))
+  OLS <- lm(myFormula, data=as.data.frame(X))
+  beta_hat <- tail(OLS$coefficients,-1)
+
+  converged <- FALSE
+  step <- 0
+
+  while (!converged & (step < max_steps)){
+
+    beta_old <- beta_hat
+
+    # Calculate
+    for (j in 1:p){
+      # shoot at 0
+      S_0 <- sum(two_XX[j,] %*% beta_hat) - two_Xy[j] - beta_hat[j] * two_XX[j,j]
+      if (S_0 > lambda){
+        beta_hat[j] <- (lambda - S_0)/two_XX[j,j]
+      } else if (S_0 < -lambda) {
+        beta_hat[j] <- (-lambda - S_0)/two_XX[j,j]
+      } else {
+        beta_hat[j] <- 0
+      }
+    }
+
+    step <- step + 1
+    converged <- euclidnorm(beta_hat-beta_old) < eps
+  }
+  output <- list(beta = beta_hat, step = step, converged = converged)
+  return(output)
+}

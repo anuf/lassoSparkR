@@ -88,6 +88,45 @@ shooting_fu <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
   return(output)
 }
 
+
+shooting_fu2 <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
+
+  p <- ncol(X)
+  two_XX = 2*t(X)%*%X # Equivalent: 2*crossprod(X)
+  two_Xy = 2*crossprod(X,y)
+
+  # Start with $\beta_OLS$
+  myFormula <- as.formula(paste("y~",paste(colnames(X),collapse ="+")))
+  OLS <- lm(myFormula, data=as.data.frame(X))
+  beta_hat <- tail(OLS$coefficients,-1)
+
+  converged <- FALSE
+  step <- 0
+
+  while (!converged & (step < max_steps)){
+
+    beta_old <- beta_hat
+
+    # Calculate
+    for (j in 1:p){
+      # shoot at 0
+      S_0 <- sum(two_XX[j,] %*% beta_hat) - two_Xy[j] - beta_hat[j] * two_XX[j,j]
+      if (S_0 > lambda){
+        beta_hat[j] <- (lambda - S_0)/two_XX[j,j]
+      } else if (S_0 < -lambda) {
+        beta_hat[j] <- (-lambda - S_0)/two_XX[j,j]
+      } else {
+        beta_hat[j] <- 0
+      }
+    }
+
+    step <- step + 1
+    converged <- euclidnorm(beta_hat-beta_old) < eps
+  }
+  output <- list(beta = beta_hat, step = step, converged = converged)
+  return(output)
+}
+
 ###############################################################
 
 # load data (Prostate data set)
@@ -151,9 +190,14 @@ ptm <- proc.time()
 out <- shooting_fu(X,y,lambda)
 proc.time() - ptm
 
-beta_fu  <- out$beta
+ptm <- proc.time()
+out2 <- shooting_fu2(X,y,lambda)
+proc.time() - ptm
 
-lassoTable <- round(matrix(c(tail(lasso_Master,-1), beta_fu), ncol=2), digits=3)
+beta_fu  <- out$beta
+beta_fu2 <- out2$beta
+
+lassoTable <- matrix(c(tail(lasso_Master,-1), beta_fu, beta_fu2), ncol=3)
 row.names(lassoTable) <- names(beta_fu)
-colnames(lassoTable) <- c("glmnet","shooting")
+colnames(lassoTable) <- c("glmnet","shooting","shooting2")
 print(lassoTable)
