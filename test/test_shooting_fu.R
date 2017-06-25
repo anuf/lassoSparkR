@@ -127,6 +127,61 @@ shooting_fu2 <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
   return(output)
 }
 
+#' @param X design matrix
+#' @param y vector of responses
+#' @param lambda tuning parameter
+#' @param eps tolerance
+#' @param max_steps maximun numbers of steps
+#'
+#' @return The vector of parameters, steps performed and indicator of convergence
+#' @export
+#'
+#' @examples
+shooting_scd <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
+
+  p <- ncol(X)
+  m <- nrow(X)
+  # Products done just once for reuse
+  two_XX = 2*t(X)%*%X # Equivalent: 2*crossprod(X)
+  two_Xy = 2*crossprod(X,y)
+
+  converged <- FALSE
+  step <- 0
+  beta_hat <- rep(0,p)
+
+  while (!converged & (step < max_steps)){
+
+    beta_old <- beta_hat
+
+    # Calculate
+    j <- sample(1:p,1)
+    print(j)
+    # shoot
+    #g_j <- sum(two_XX[j,] %*% beta_hat) - two_Xy[j] - beta_hat[j] * two_XX[j,j]
+    tmp <- 0
+    for (i in 1:m){
+      tmp <- tmp + (sum(beta_hat*X[i,])-y[i])*X[i,j]
+    }
+    print(tmp)
+    g_j <- tmp/m
+    print(g_j)
+    w_j_g_j <- beta_hat[j]-g_j
+    #print(w_j_g_j)
+    if (w_j_g_j > lambda){
+      beta_hat[j] <- (w_j_g_j-lambda)
+    } else if (w_j_g_j < -lambda) {
+      beta_hat[j] <- (w_j_g_j+lambda)
+    } else {
+      beta_hat[j] <- 0
+    }
+
+
+    step <- step + 1
+    converged <- euclidnorm(beta_hat-beta_old) < eps
+  }
+  output <- list(beta = beta_hat, step = step, converged = converged)
+  return(output)
+}
 ###############################################################
 
 # load data (Prostate data set)
@@ -194,10 +249,16 @@ ptm <- proc.time()
 out2 <- shooting_fu2(X,y,lambda)
 proc.time() - ptm
 
+ptm <- proc.time()
+out3 <- shooting_scd(X,y,lambda)
+proc.time() - ptm
+
 beta_fu  <- out$beta
 beta_fu2 <- out2$beta
+beta_scd <- out3$beta
 
-lassoTable <- matrix(c(tail(lasso_Master,-1), beta_fu, beta_fu2), ncol=3)
+lassoTable <- matrix(c(tail(lasso_Master,-1), beta_fu, beta_fu2, beta_scd),
+                     ncol=4)
 row.names(lassoTable) <- names(beta_fu)
-colnames(lassoTable) <- c("glmnet","shooting","shooting2")
+colnames(lassoTable) <- c("glmnet","shooting","shooting2","scd")
 print(lassoTable)
