@@ -124,6 +124,7 @@ shooting_fu2 <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
     step <- step + 1
     converged <- euclidnorm(beta_hat-beta_old) < eps
   }
+  # Intercept <- mean(y-crossprod(t(X),beta_hat))
   output <- list(coefficients = beta_hat, step = step, converged = converged)
   return(output)
 }
