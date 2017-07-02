@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# for Spark (at least on MACOS)
+metastore_db/
+derby.log
