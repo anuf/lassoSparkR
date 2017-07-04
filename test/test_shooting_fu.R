@@ -29,6 +29,15 @@ euclidnorm <- function(x){
   return(sqrt(sum(x^2)))
 }
 
+
+norm1 <- function(x){
+  return(sum(abs(x)))
+}
+
+normInf <- function(x){
+  return(max(abs(x)))
+}
+
 #' Shooting function at 0
 #' @param j column index
 #' @param beta weights
@@ -121,29 +130,22 @@ shooting_fu2 <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
     }
 
     step <- step + 1
-    converged <- euclidnorm(beta_hat-beta_old) < eps
+    converged <- norm1(beta_hat-beta_old) < eps
   }
   output <- list(beta = beta_hat, step = step, converged = converged)
   return(output)
 }
 
+#' Shooting SCD algorithm (Shalev-Shwartz and Tewari)
 #' @param X design matrix
 #' @param y vector of responses
 #' @param lambda tuning parameter
 #' @param eps tolerance
-#' @param max_steps maximun numbers of steps
-#'
 #' @return The vector of parameters, steps performed and indicator of convergence
-#' @export
-#'
-#' @examples
 shooting_scd <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
 
   p <- ncol(X)
   m <- nrow(X)
-  # Products done just once for reuse
-  two_XX = 2*t(X)%*%X # Equivalent: 2*crossprod(X)
-  two_Xy = 2*crossprod(X,y)
 
   converged <- FALSE
   step <- 0
@@ -153,20 +155,19 @@ shooting_scd <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
 
     beta_old <- beta_hat
 
-    # Calculate
+    # Sample j uniformly at random from {1...p}
     j <- sample(1:p,1)
-    print(j)
-    # shoot
-    #g_j <- sum(two_XX[j,] %*% beta_hat) - two_Xy[j] - beta_hat[j] * two_XX[j,j]
+    # calculate j-derivative
     tmp <- 0
     for (i in 1:m){
       tmp <- tmp + (sum(beta_hat*X[i,])-y[i])*X[i,j]
+      #tmp <- tmp + (crossprod(beta_hat,X[i,])-y[i])*X[i,j]
     }
-    print(tmp)
     g_j <- tmp/m
-    print(g_j)
+
+    # Thresholding
     w_j_g_j <- beta_hat[j]-g_j
-    #print(w_j_g_j)
+
     if (w_j_g_j > lambda){
       beta_hat[j] <- (w_j_g_j-lambda)
     } else if (w_j_g_j < -lambda) {
@@ -174,18 +175,18 @@ shooting_scd <- function(X, y, lambda, eps = 1e-6, max_steps = 1000){
     } else {
       beta_hat[j] <- 0
     }
-
-
     step <- step + 1
     converged <- euclidnorm(beta_hat-beta_old) < eps
   }
   output <- list(beta = beta_hat, step = step, converged = converged)
+
   return(output)
 }
 ###############################################################
 
 # load data (Prostate data set)
 #library(ElemStatLearn) # Prostate data set
+library("lasso2", lib.loc="~/R/win-library/3.4")
 library("lasso2", lib.loc="/Library/Frameworks/R.framework/Versions/3.2/Resources/library")
 data(Prostate)
 
@@ -250,7 +251,8 @@ out2 <- shooting_fu2(X,y,lambda)
 proc.time() - ptm
 
 ptm <- proc.time()
-out3 <- shooting_scd(X,y,lambda)
+lambdaSCD <- 0.0005
+out3 <- shooting_scd(X,y,lambdaSCD)
 proc.time() - ptm
 
 beta_fu  <- out$beta
